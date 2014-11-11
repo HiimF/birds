@@ -18,7 +18,8 @@ function birdEntity(opts){
   this.size = opts.size || 10;
   this.repulsionRadius = 25;
   this.aligmentRadius = 50;
-  this.atractionRadius = 100;
+  this.atractionRadius = 200;
+  this.sightRadius = 300;
   this.sprite = new sprite(window.backgroundImg);
   this.sprite.addAnimation('flap', [0,1,2,1,0,1,2,3,4,5], [10,10], 5);
   this.sprite.playAnimation('flap');
@@ -52,16 +53,6 @@ birdEntity.prototype.render = function(ctx){
 
   //Bird
   ctx.fillStyle = this.leader === true ? 'red' : this.color;
-
-  /*ctx.save();
-  //ctx.rotate(this.angle * Math.PI / 180);
-
-  ctx.beginPath();
-  ctx.moveTo(this.pos.x + 5, this.pos.y);
-  ctx.lineTo(this.pos.x, this.pos.y + 5);
-  ctx.lineTo(this.pos.x, this.pos.y - 5);
-  ctx.fill();
-  ctx.restore();*/
 
   if(window.debugging == 2){
     ctx.beginPath();

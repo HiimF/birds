@@ -39,6 +39,7 @@ h6 {
     text-align: center;
     color: #f8f8f8;
     /*background: url(../images/bg.png) no-repeat center center;*/
+    background:-webkit-linear-gradient(135deg, rgb(84, 141, 189) 0%, rgb(99, 64, 113) 100%);
     background:linear-gradient(315deg, rgb(84, 141, 189) 0%, rgb(99, 64, 113) 100%);
     background-size: cover;
 }
@@ -49,6 +50,7 @@ h6 {
     text-align: center;
     color: #f8f8f8;
     /*background: url(../images/bg.png) no-repeat center center;*/
+    background:-webkit-linear-gradient(240deg, rgb(99, 64, 113) 0%, rgb(84, 141, 189) 100%);
     background:linear-gradient(210deg, rgb(99, 64, 113) 0%, rgb(84, 141, 189) 100%);
     background-size: cover;
 }

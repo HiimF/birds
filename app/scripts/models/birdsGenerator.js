@@ -15,8 +15,11 @@ function newBird(x,y){
 }
 
 function getPackOfBirds(limitWidth, limitHeight){
-  var amount = utils.random(20, 50);
+  var screenFactor = (window.innerWidth / window.innerHeight);
+  var lower = window.innerWidth < window.innerHeight ? window.innerWidth : window.innerHeight;
+  var amount = Math.round((lower * screenFactor )/10);
   var randomLeaderIndex = utils.random(0, amount - 1);
+
   var pack = [];
   
   for(var i = 0; i < amount; i++){
@@ -67,7 +70,7 @@ function insertTree(arr, name){
 }
 
 
-function updatePackOfBirds(pack, ctx){
+function updatePackOfBirds(pack, ctx, enemies){
 
   //Changeof leadership
   var shouldChangeLeader = utils.random(0, 2000) < 10;
@@ -95,7 +98,7 @@ function updatePackOfBirds(pack, ctx){
     assignLeader(pack, newLeaderIndex);
   }
 
-  var meanX, meanY, dx, dy, separation, cohesion, alignment;
+  var meanX, meanY, dx, dy, separation, cohesion, alignmen, avoiding;
 
   for(var i = 0; i < pack.length; i++){
 
@@ -105,6 +108,8 @@ function updatePackOfBirds(pack, ctx){
       var neighbors = kNearest(pack[i], pack, 7, pack[i].atractionRadius);
       var alignmentNeighbors = kNearest(pack[i], pack, 7, pack[i].aligmentRadius);
       var birdsInRepulsionZone = kNearest(pack[i], pack, 7, pack[i].repulsionRadius);
+
+      var enemiesNear = kNearest(pack[i], enemies, 2, pack[i].sightRadius);
 
       if(window.debugging){
         for(var n = 0; n < neighbors.length; n++){
@@ -168,7 +173,26 @@ function updatePackOfBirds(pack, ctx){
           dy = meanY - pack[i].pos.y;
           cohesion = (Math.atan2(dx, dy) * 180 / Math.PI) - pack[i].angle;
       }
-      var turnAmount = (cohesion * 0.01) + (alignment * 0.5) + (separation * 0.25);
+     
+
+      avoiding = 0;
+      //4. Avoid near enemies
+      if(enemiesNear.length > 0){
+        meanX = arrayMean(enemiesNear, function(b){return b.pos.x});
+        meanY = arrayMean(enemiesNear, function(b){return b.pos.y});
+        dx = meanX - pack[i].pos.x;
+        dy = meanY - pack[i].pos.y;
+        avoiding = (Math.atan2(dx, dy) * 180 / Math.PI) - pack[i].angle;
+        avoiding += 180;
+      }
+
+      var turnAmount;
+      if(avoiding){
+        turnAmount = (avoiding * 0.75) + (cohesion * 0.01) + (alignment * 0.5) + (separation * 0.25);
+      }else{
+        turnAmount = (cohesion * 0.01) + (alignment * 0.5) + (separation * 0.25);
+
+      }
       pack[i].angle += turnAmount;
   }
 

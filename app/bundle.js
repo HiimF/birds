@@ -439,13 +439,15 @@ module.exports = {
 var birdsGenerator = require('./models/birdsGenerator');
 var particleGenerator = require('./models/particles');
 var assetsLoader = require('./assetsLoader');
+var player = require('./player');
 var particles = particleGenerator.particles;
 var song, then, now, canvas,ctx, canvas2, ctx2, shown,  particlesGenerationStep, particlesDying, color, birds;
 
 
 function start(){
-  birds = birdsGenerator.getPackOfBirds(window.innerWidth, window.innerHeight);
   particlesGenerationStep = 'white'
+  birds = birdsGenerator.getPackOfBirds(window.innerWidth, window.innerHeight);
+  player.initialize();
   getBlueParticles();
   launchCanvas();
 }
@@ -478,8 +480,10 @@ var loop = function loop(){
 }
 
 function update(dt){
-  updateBackgrounds(dt/1000);
-  updateBirds(dt/1000);
+  var newDt = dt/1000;
+  updateBackgrounds(newDt);
+  updateBirds(newDt);
+  player.update(newDt);
 }
 
 function updateBackgrounds(dt){
@@ -499,12 +503,13 @@ function updateBackgrounds(dt){
     }));
  
   if(particles.length == 0){
-    regenerateParticles();
+    getBlueParticles();
   }
 }
 
 function updateBirds(dt){
-  birdsGenerator.updatePackOfBirds(birds, ctx);
+
+  birdsGenerator.updatePackOfBirds(birds, ctx, [player.getEntity()]);
 
   birds = _.compact(birds.map(function(bird){
     bird.update(dt);
@@ -518,6 +523,8 @@ function clear(){
   ctx.canvas.height = window.innerHeight;
   ctx2.canvas.width = window.innerWidth;
   ctx2.canvas.height = window.innerHeight;
+  ctx2.clearRect(0, 0, canvas.width, canvas.height);
+  
   var gradient = ctx.createLinearGradient(canvas.width, canvas.height,0, 0);
  
   gradient.addColorStop(0, "rgb(84, 141, 189)");
@@ -525,7 +532,6 @@ function clear(){
   ctx.fillStyle = gradient;
     
   ctx.fillRect(0, 0, canvas.width, canvas.height);
-  ctx2.clearRect(0, 0, canvas.width, canvas.height);
   ctx.globalCompositeOperation = "lighter";
 
 }
@@ -539,6 +545,8 @@ function render(){
   birds.forEach(function(bird){
     bird.render(ctx2);
   });
+
+  player.render(ctx2);
 }
 
 function changeAnimation(anim){
@@ -550,35 +558,6 @@ function changeAnimation(anim){
   particlesGenerationStep = anim;
 }
 
-function regenerateParticles(){
-  particlesDying = false;
-  switch(particlesGenerationStep){
-    case 'red':
-      getRedParticles();
-    break;
-    case 'green':
-     getGreenParticles();
-    break;
-    case 'brown':
-      getBrownParticles();
-    break;
-    case 'blue':
-      getBlueParticles();
-    break;
-    case 'yellow':
-      color = {r:248,g:235,b:79};
-      particles = particleGenerator.getColorParticles(color, 20,0);
-    break;
-    case 'white':
-      color = {r:255,g:255,b:255};
-      particles = particleGenerator.getColorParticles(color, 20,0);
-    break;
-    case 'default':
-      color = null;
-      particles = particleGenerator.getColorParticles(color, 20,0);
-    break;
-  }
-}
 
 function  getRedParticles(){
   color = {r:255,g:0,b:0};
@@ -600,10 +579,10 @@ function  getBlueParticles(){
 $(document).ready(function(){
   window.loader = new PxLoader(), 
   window.backgroundImg = loader.addImage('images/birdsprite.png');
+  window.playerImage = loader.addImage('images/playersprite.png');
 
  
   loader.addCompletionListener(function() {
-    
     start();
   }); 
   // begin downloading 
@@ -615,7 +594,60 @@ $(document).ready(function(){
   });
  
 });
-},{"./assetsLoader":2,"./models/birdsGenerator":5,"./models/particles":9}],4:[function(require,module,exports){
+},{"./assetsLoader":2,"./models/birdsGenerator":6,"./models/particles":10,"./player":14}],4:[function(require,module,exports){
+'use strict';
+
+var pressedKeys = {};
+
+function setKey(event, status) {
+    var code = event.keyCode;
+    var key;
+
+    switch(code) {
+    case 32:
+        key = 'SPACE'; break;
+    case 37:
+        key = 'LEFT'; break;
+    case 38:
+        key = 'UP'; break;
+    case 39:
+        key = 'RIGHT'; break;
+    case 40:
+        key = 'DOWN'; break;
+    default:
+        // Convert ASCII codes to letters
+        key = String.fromCharCode(code);
+    }
+
+    pressedKeys[key] = status;
+}
+
+document.addEventListener('keydown', function(e) {
+    setKey(e, true);
+});
+
+document.addEventListener('keyup', function(e) {
+    setKey(e, false);
+});
+
+window.addEventListener('blur', function() {
+    pressedKeys = {};
+});
+
+var input = {
+    isDown: function(key) {
+        return pressedKeys[key.toUpperCase()];
+    },
+    addKey : function(code){
+        pressedKeys[code.toUpperCase()] = true;
+    },
+    removeKey: function(code){
+        pressedKeys[code.toUpperCase()] =  false;
+    }
+};
+
+module.exports = input;
+},{}],5:[function(require,module,exports){
 var Victor = require('victor');
 var utils = require('../utils');
 var sprite = require('../sprite');
@@ -636,7 +668,8 @@ function birdEntity(opts){
   this.size = opts.size || 10;
   this.repulsionRadius = 25;
   this.aligmentRadius = 50;
-  this.atractionRadius = 100;
+  this.atractionRadius = 200;
+  this.sightRadius = 300;
   this.sprite = new sprite(window.backgroundImg);
   this.sprite.addAnimation('flap', [0,1,2,1,0,1,2,3,4,5], [10,10], 5);
   this.sprite.playAnimation('flap');
@@ -670,16 +703,6 @@ birdEntity.prototype.render = function(ctx){
 
   //Bird
   ctx.fillStyle = this.leader === true ? 'red' : this.color;
-
-  /*ctx.save();
-  //ctx.rotate(this.angle * Math.PI / 180);
-
-  ctx.beginPath();
-  ctx.moveTo(this.pos.x + 5, this.pos.y);
-  ctx.lineTo(this.pos.x, this.pos.y + 5);
-  ctx.lineTo(this.pos.x, this.pos.y - 5);
-  ctx.fill();
-  ctx.restore();*/
 
   if(window.debugging == 2){
     ctx.beginPath();
@@ -731,7 +754,7 @@ birdEntity.prototype.update = function(dt){
 }
 
 module.exports = birdEntity;
-},{"../assetsLoader":2,"../sprite":12,"../utils":13,"./entity":7,"victor":14}],5:[function(require,module,exports){
+},{"../assetsLoader":2,"../sprite":15,"../utils":16,"./entity":8,"victor":17}],6:[function(require,module,exports){
 var entities = require('./entities');
 var utils = require('../utils');
 var QuadTree = require('../QuadTree');
@@ -749,8 +772,11 @@ function newBird(x,y){
 }
 
 function getPackOfBirds(limitWidth, limitHeight){
-  var amount = utils.random(20, 50);
+  var screenFactor = (window.innerWidth / window.innerHeight);
+  var lower = window.innerWidth < window.innerHeight ? window.innerWidth : window.innerHeight;
+  var amount = Math.round((lower * screenFactor )/10);
   var randomLeaderIndex = utils.random(0, amount - 1);
+
   var pack = [];
   
   for(var i = 0; i < amount; i++){
@@ -801,7 +827,7 @@ function insertTree(arr, name){
 }
 
 
-function updatePackOfBirds(pack, ctx){
+function updatePackOfBirds(pack, ctx, enemies){
 
   //Changeof leadership
   var shouldChangeLeader = utils.random(0, 2000) < 10;
@@ -829,7 +855,7 @@ function updatePackOfBirds(pack, ctx){
     assignLeader(pack, newLeaderIndex);
   }
 
-  var meanX, meanY, dx, dy, separation, cohesion, alignment;
+  var meanX, meanY, dx, dy, separation, cohesion, alignmen, avoiding;
 
   for(var i = 0; i < pack.length; i++){
 
@@ -839,6 +865,8 @@ function updatePackOfBirds(pack, ctx){
       var neighbors = kNearest(pack[i], pack, 7, pack[i].atractionRadius);
       var alignmentNeighbors = kNearest(pack[i], pack, 7, pack[i].aligmentRadius);
       var birdsInRepulsionZone = kNearest(pack[i], pack, 7, pack[i].repulsionRadius);
+
+      var enemiesNear = kNearest(pack[i], enemies, 2, pack[i].sightRadius);
 
       if(window.debugging){
         for(var n = 0; n < neighbors.length; n++){
@@ -902,7 +930,26 @@ function updatePackOfBirds(pack, ctx){
           dy = meanY - pack[i].pos.y;
           cohesion = (Math.atan2(dx, dy) * 180 / Math.PI) - pack[i].angle;
       }
-      var turnAmount = (cohesion * 0.01) + (alignment * 0.5) + (separation * 0.25);
+     
+
+      avoiding = 0;
+      //4. Avoid near enemies
+      if(enemiesNear.length > 0){
+        meanX = arrayMean(enemiesNear, function(b){return b.pos.x});
+        meanY = arrayMean(enemiesNear, function(b){return b.pos.y});
+        dx = meanX - pack[i].pos.x;
+        dy = meanY - pack[i].pos.y;
+        avoiding = (Math.atan2(dx, dy) * 180 / Math.PI) - pack[i].angle;
+        avoiding += 180;
+      }
+
+      var turnAmount;
+      if(avoiding){
+        turnAmount = (avoiding * 0.75) + (cohesion * 0.01) + (alignment * 0.5) + (separation * 0.25);
+      }else{
+        turnAmount = (cohesion * 0.01) + (alignment * 0.5) + (separation * 0.25);
+
+      }
       pack[i].angle += turnAmount;
   }
 
@@ -1060,7 +1107,7 @@ function kNearest(a1, lst, k, maxDist) {
 
 module.exports.updatePackOfBirds = updatePackOfBirds;
 module.exports.getPackOfBirds = getPackOfBirds;
-},{"../QuadTree":1,"../utils":13,"./entities":6}],6:[function(require,module,exports){
+},{"../QuadTree":1,"../utils":16,"./entities":7}],7:[function(require,module,exports){
 var entity = require('./entity');
 var textEntity = require('./textEntity');
 var birdEntity = require('./birdEntity');
@@ -1072,7 +1119,7 @@ module.exports = {
   particleEntity: particleEntity,
   birdEntity: birdEntity
 }
-},{"./birdEntity":4,"./entity":7,"./particleEntity":8,"./textEntity":10}],7:[function(require,module,exports){
+},{"./birdEntity":5,"./entity":8,"./particleEntity":9,"./textEntity":12}],8:[function(require,module,exports){
 var Victor = require('victor');
 
 function entity(opts){
@@ -1092,7 +1139,7 @@ entity.prototype.render = function(ctx){
 }
 
 module.exports = entity;
-},{"victor":14}],8:[function(require,module,exports){
+},{"victor":17}],9:[function(require,module,exports){
 var Victor = require('victor');
 var entity = require('./entity');
 var utils = require('../utils');
@@ -1140,7 +1187,7 @@ particleEntity.prototype.render = function(ctx){
 }
 
 module.exports = particleEntity;
-},{"../utils":13,"./entity":7,"victor":14}],9:[function(require,module,exports){
+},{"../utils":16,"./entity":8,"victor":17}],10:[function(require,module,exports){
 var entities = require('./entities');
 var utils = require('../utils');
 var particles = getColorParticles(null, 50);
@@ -1195,7 +1242,61 @@ module.exports.newParticle = newParticle;
 module.exports.newFireParticle = newFireParticle;
 module.exports.getColorParticles = getColorParticles;
 module.exports.getFireParticles = getFireParticles;
-},{"../utils":13,"./entities":6}],10:[function(require,module,exports){
+},{"../utils":16,"./entities":7}],11:[function(require,module,exports){
+var entity = require('./entity');
+var sprite = require('../sprite');
+var Victor = require('victor');
+
+function Player(opts){
+  entity.prototype.constructor.call(this, opts);
+  this.mass = opts.mass || 1;
+  this.angle = opts.angle || 0;
+  this.radius = opts.radius || 5;
+  this.life = opts.life || 200;
+  this.remaining_life = this.life;
+  this.maxSpeed = opts.maxSpeed || 200;
+  this.sprite = new sprite(window.playerImage);
+  this.sprite.addAnimation('flap', [0,1,2,1,0,1,2,3,4,5], [10,10], 1000);
+  this.sprite.playAnimation('flap');
+}
+
+Player.prototype.render = function(ctx){
+  this.sprite.render(ctx, this.pos.x, this.pos.y, 30, 30, this.angle);
+}
+
+Player.prototype.update = function(dt){
+  this.sprite.update(dt);
+  if((this.speed.x < this.maxSpeed && this.acceleration.x > 0)  || this.acceleration.x < 0){
+    this.speed.add(this.acceleration);
+  }
+
+  if(this.destinyAngle != null && this.destinyAngle != this.angle){
+    if(this.angle < this.destinyAngle){
+      this.angle = (this.angle + dt * 100) > this.destinyAngle ? this.destinyAngle : (this.angle + dt* 100 );
+    }else{
+      this.angle = (this.angle - dt * 100) < this.destinyAngle ? this.destinyAngle : (this.angle - dt* 100);
+    }
+  }
+
+  var speedDt = new Victor(this.speed.x, this.speed.y).multiply(new Victor(dt, dt)).rotateDeg(this.angle);
+  
+  this.pos = this.pos.add(speedDt);
+
+  //Check borders
+  if(this.pos.x > window.innerWidth){
+    this.pos.x = 0;
+  }else if(this.pos.x < 0){
+    this.pos.x = window.innerWidth;
+  }
+  if(this.pos.y > window.innerHeight){
+    this.pos.y = 0;
+  }else if(this.pos.y < 0){
+    this.pos.y = window.innerHeight;
+  }
+}
+
+module.exports = Player;
+},{"../sprite":15,"./entity":8,"victor":17}],12:[function(require,module,exports){
 var Victor = require('victor');
 var entity = require('./entity');
 
@@ -1241,7 +1342,7 @@ textEntity.prototype.getTextHeight = function(){
 }
 
 module.exports = textEntity;
-},{"./entity":7,"victor":14}],11:[function(require,module,exports){
+},{"./entity":8,"victor":17}],13:[function(require,module,exports){
 var entities = require('./entities');
 
 var texts = [];
@@ -1324,7 +1425,81 @@ module.exports.texts = texts;
 module.exports.newText = newText;
 module.exports.prepareNewText = prepareNewText;
 module.exports.suscribe = suscribe;
-},{"./entities":6}],12:[function(require,module,exports){
+},{"./entities":7}],14:[function(require,module,exports){
+var Player = require('./models/playerModel');
+var input = require('./input');
+
+var player;
+
+function initialize(){
+  player = new Player({
+    x: window.innerWidth / 2,
+    y:  100,
+    speedX : 10,
+    speedY : 10,
+    angle: 90,
+    maxSpeed: 200
+  });
+}
+
+function update(dt){
+  var desiredAngle = null;
+  if(input.isDown('w') || input.isDown('UP')){
+
+    desiredAngle = -90;
+    if(input.isDown('d') || input.isDown('RIGHT')){
+      desiredAngle -= 45;
+    }
+
+    if(input.isDown('a') || input.isDown('LEFT')){
+      desiredAngle += 45;
+    }
+  }else if(input.isDown('s') || input.isDown('DOWN')){
+    desiredAngle = 90;
+
+    if(input.isDown('d') || input.isDown('RIGHT')){
+      desiredAngle += 45;
+    }
+
+    if(input.isDown('a') || input.isDown('LEFT')){
+      desiredAngle -= 45;
+    }
+  }else{
+    if(input.isDown('d') || input.isDown('RIGHT')){
+      desiredAngle = 0;
+    }else if(input.isDown('a') || input.isDown('LEFT')){
+      desiredAngle = -180;
+    }
+  }
+
+  if(input.isDown('SPACE') ){
+    player.acceleration.x = 1;
+    player.acceleration.y = 1;
+  }else if(player.speed.x > 10){
+    player.acceleration.x -= dt * 10;
+    player.acceleration.y -= dt * 10;
+  }else{
+    player.acceleration.x = 0;
+    player.acceleration.y = 0;
+  }
+  player.destinyAngle = desiredAngle;
+
+  player.update(dt);
+}
+
+function render(ctx){
+  player.render(ctx);
+}
+
+module.exports = {
+  update: update,
+  render: render,
+  initialize: initialize,
+  getEntity: function(){
+    return player;
+  }
+}
+},{"./input":4,"./models/playerModel":11}],15:[function(require,module,exports){
 function Sprite(img){
 	this.img = img;
 	this.animations = {};
@@ -1336,7 +1511,7 @@ Sprite.prototype.addAnimation = function (name, frames, size, duration, pos, dir
 
 	this.animations[name] = {
 		frames: frames,
-		frameTime: Math.round(duration/frames.length),
+		frameTime: duration/1000/frames.length,
 		size: size,
 		direction: direction,
 		pos: pos,
@@ -1358,6 +1533,7 @@ Sprite.prototype.update = function(dt){
 	if(currentAnimation){
 		currentAnimation.frameDt += dt;
 		if(currentAnimation.frameDt >= currentAnimation.frameTime){
+      currentAnimation.frameDt = 0;
 			currentAnimation.frameIndex = currentAnimation.frameIndex < (currentAnimation.frames.length - 1) ? currentAnimation.frameIndex + 1 : 0;
 		}
 	}
@@ -1399,7 +1575,7 @@ Sprite.prototype.render = function(ctx, x, y, resizeX, resizeY, angle){
 }
 
 module.exports = Sprite;
-},{}],13:[function(require,module,exports){
+},{}],16:[function(require,module,exports){
 function random(a, b){
   return Math.floor(Math.random() * b) + a;
 }
@@ -1431,7 +1607,7 @@ module.exports = {
   randomRGBColor: randomRGBColor,
   flipCoin: flipCoin
 }
-},{}],14:[function(require,module,exports){
+},{}],17:[function(require,module,exports){
 exports = module.exports = Victor;
 
 /**
@@ -2481,4 +2657,4 @@ function degrees2radian (deg) {
 	return deg / degrees;
 }
 
-},{}]},{},[1,2,3,4,5,6,7,8,9,10,11,12,13]);
+},{}]},{},[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16]);

@@ -9,7 +9,7 @@ Sprite.prototype.addAnimation = function (name, frames, size, duration, pos, dir
 
 	this.animations[name] = {
 		frames: frames,
-		frameTime: Math.round(duration/frames.length),
+		frameTime: duration/1000/frames.length,
 		size: size,
 		direction: direction,
 		pos: pos,
@@ -31,6 +31,7 @@ Sprite.prototype.update = function(dt){
 	if(currentAnimation){
 		currentAnimation.frameDt += dt;
 		if(currentAnimation.frameDt >= currentAnimation.frameTime){
+      currentAnimation.frameDt = 0;
 			currentAnimation.frameIndex = currentAnimation.frameIndex < (currentAnimation.frames.length - 1) ? currentAnimation.frameIndex + 1 : 0;
 		}
 	}

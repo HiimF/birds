@@ -3,13 +3,15 @@
 var birdsGenerator = require('./models/birdsGenerator');
 var particleGenerator = require('./models/particles');
 var assetsLoader = require('./assetsLoader');
+var player = require('./player');
 var particles = particleGenerator.particles;
 var song, then, now, canvas,ctx, canvas2, ctx2, shown,  particlesGenerationStep, particlesDying, color, birds;
 
 
 function start(){
-  birds = birdsGenerator.getPackOfBirds(window.innerWidth, window.innerHeight);
   particlesGenerationStep = 'white'
+  birds = birdsGenerator.getPackOfBirds(window.innerWidth, window.innerHeight);
+  player.initialize();
   getBlueParticles();
   launchCanvas();
 }
@@ -42,8 +44,10 @@ var loop = function loop(){
 }
 
 function update(dt){
-  updateBackgrounds(dt/1000);
-  updateBirds(dt/1000);
+  var newDt = dt/1000;
+  updateBackgrounds(newDt);
+  updateBirds(newDt);
+  player.update(newDt);
 }
 
 function updateBackgrounds(dt){
@@ -63,12 +67,13 @@ function updateBackgrounds(dt){
     }));
  
   if(particles.length == 0){
-    regenerateParticles();
+    getBlueParticles();
   }
 }
 
 function updateBirds(dt){
-  birdsGenerator.updatePackOfBirds(birds, ctx);
+
+  birdsGenerator.updatePackOfBirds(birds, ctx, [player.getEntity()]);
 
   birds = _.compact(birds.map(function(bird){
     bird.update(dt);
@@ -82,6 +87,8 @@ function clear(){
   ctx.canvas.height = window.innerHeight;
   ctx2.canvas.width = window.innerWidth;
   ctx2.canvas.height = window.innerHeight;
+  ctx2.clearRect(0, 0, canvas.width, canvas.height);
+  
   var gradient = ctx.createLinearGradient(canvas.width, canvas.height,0, 0);
  
   gradient.addColorStop(0, "rgb(84, 141, 189)");
@@ -89,7 +96,6 @@ function clear(){
   ctx.fillStyle = gradient;
     
   ctx.fillRect(0, 0, canvas.width, canvas.height);
-  ctx2.clearRect(0, 0, canvas.width, canvas.height);
   ctx.globalCompositeOperation = "lighter";
 
 }
@@ -103,6 +109,8 @@ function render(){
   birds.forEach(function(bird){
     bird.render(ctx2);
   });
+
+  player.render(ctx2);
 }
 
 function changeAnimation(anim){
@@ -114,35 +122,6 @@ function changeAnimation(anim){
   particlesGenerationStep = anim;
 }
 
-function regenerateParticles(){
-  particlesDying = false;
-  switch(particlesGenerationStep){
-    case 'red':
-      getRedParticles();
-    break;
-    case 'green':
-     getGreenParticles();
-    break;
-    case 'brown':
-      getBrownParticles();
-    break;
-    case 'blue':
-      getBlueParticles();
-    break;
-    case 'yellow':
-      color = {r:248,g:235,b:79};
-      particles = particleGenerator.getColorParticles(color, 20,0);
-    break;
-    case 'white':
-      color = {r:255,g:255,b:255};
-      particles = particleGenerator.getColorParticles(color, 20,0);
-    break;
-    case 'default':
-      color = null;
-      particles = particleGenerator.getColorParticles(color, 20,0);
-    break;
-  }
-}
 
 function  getRedParticles(){
   color = {r:255,g:0,b:0};
@@ -164,10 +143,10 @@ function  getBlueParticles(){
 $(document).ready(function(){
   window.loader = new PxLoader(), 
   window.backgroundImg = loader.addImage('images/birdsprite.png');
+  window.playerImage = loader.addImage('images/playersprite.png');
 
  
   loader.addCompletionListener(function() {
-    
     start();
   }); 
   // begin downloading 
