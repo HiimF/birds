@@ -1546,11 +1546,11 @@ window.SETTINGS = {
     value: 24
   },
   birdRepulsionRadius: {
-    name: 'Bird repulsion radius - Blue',
+    name: 'Bird repulsion radius - Red',
     value: 11
   },
   birdSightRadius: {
-    name: 'Bird sight radius - Blue',
+    name: 'Bird sight radius',
     value: 300
   },
   debugging:{
