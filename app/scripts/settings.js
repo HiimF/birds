@@ -1,7 +1,7 @@
 window.SETTINGS = {
-  enemy:{
-    name: 'Enemy speed',
-    value: 10
+  birdSpeed:{
+    name: 'Bird speed',
+    value: 80
   },
   birdSightRadius:{
     name: 'Bird sight radius',
@@ -9,15 +9,15 @@ window.SETTINGS = {
   },
   birdAttractionRadius: {
     name: 'Bird attraction radius - Green',
-    value: 200
+    value: 130
   },
   birdAlignmentRadius: {
     name: 'Bird alignment radius - Blue',
-    value: 50
+    value: 24
   },
   birdRepulsionRadius: {
     name: 'Bird repulsion radius - Blue',
-    value: 25
+    value: 11
   },
   birdSightRadius: {
     name: 'Bird sight radius - Blue',

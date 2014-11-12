@@ -8,11 +8,11 @@ var SettingsSlider = React.createClass({
   },
   render: function() {
     return (
-      <div class="sliderContainer">
-        <span class="name">{this.props.setting.name}</span>
-        <div class="slider">
-          <input class="bar" onChange={this.handleChange} max={this.props.setting.max || 700} type="range" class="rangeinput" defaultValue={this.props.setting.value}/>
-          <div class="rangevalue">{this.props.setting.value}</div>
+      <div className="sliderContainer">
+        <span className="name">{this.props.setting.name}</span>
+        <div className="slider">
+          <input className="bar" onChange={this.handleChange} max={this.props.setting.max || 700} type="range" className="rangeinput" defaultValue={this.props.setting.value}/>
+          <div className="rangevalue">{this.props.setting.value}</div>
         </div>
       </div>
     );

@@ -36,6 +36,10 @@ birdEntity.prototype.getSightRadius = function(){
   return window.SETTINGS.birdSightRadius.value;
 }
 
+birdEntity.prototype.getSpeed = function(){
+  return window.SETTINGS.birdSpeed.value;
+}
+
 birdEntity.prototype.constructor = birdEntity;
 birdEntity.prototype.parent = entity.prototype;
 
@@ -44,9 +48,9 @@ birdEntity.prototype.render = function(ctx){
   if( window.SETTINGS.debugging.value == 3 ){
     //Attraction  zone
     ctx.beginPath();
-    ctx.fillStyle = 'rgba(42, 250, 33, 0.10)';
+    ctx.strokeStyle = 'rgba(42, 250, 33, 0.30)';
     ctx.arc(this.pos.x, this.pos.y, this.getAttractionRadius(), Math.PI*2, false);
-    ctx.fill();
+    ctx.stroke();
   }
 
   if( window.SETTINGS.debugging.value == 2 || window.SETTINGS.debugging.value == 3 ){
@@ -99,7 +103,7 @@ birdEntity.prototype.update = function(dt){
     //this.speed.rotateDeg(this.angle);
   }
   
-  var speedDt = new Victor(this.speed.x, this.speed.y).multiply(new Victor(dt, dt)).rotateDeg(this.angle);
+  var speedDt = new Victor(this.getSpeed(), this.getSpeed()).multiply(new Victor(dt, dt)).rotateDeg(this.angle);
   
   this.pos = this.pos.add(speedDt);
 

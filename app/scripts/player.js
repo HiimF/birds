@@ -60,6 +60,13 @@ function update(dt){
 }
 
 function render(ctx){
+  if(window.SETTINGS.debugging.value == 1){
+    ctx.beginPath();
+    ctx.strokeStyle = 'rgba(42, 250, 33, 0.50)';
+    ctx.arc(player.pos.x, player.pos.y, 30 , Math.PI*2, false);
+    ctx.stroke();
+  }
+  
   player.render(ctx);
 }
 

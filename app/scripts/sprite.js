@@ -42,32 +42,30 @@ Sprite.prototype.render = function(ctx, x, y, resizeX, resizeY, angle){
 	if(currentAnimation){
 		var width = resizeX ? resizeX : currentAnimation.size[0];
 		var height = resizeY ? resizeY : currentAnimation.size[1];
-		
-		if(angle){
-			ctx.save();
-			var origX = width / 2;
-			var origY = height / 2;
-			ctx.translate(x+ origX, y +origY);
-			//ctx.translate(x + currentAnimation.size[0]/2, y + currentAnimation.size[1]/2);
-			//ctx.translate(x,y);
+	  
+    ctx.save();
+    ctx.translate(x,y);
 
-			ctx.rotate(angle * Math.PI / 180);
-			x = -origX;
-			y = -origY;
-		}
+    if(angle){   
+      ctx.rotate(angle * Math.PI / 180);
+    }
+
 		ctx.drawImage(
       this.img,
       currentAnimation.pos[0] + (currentAnimation.size[0] * currentAnimation.frames[currentAnimation.frameIndex]),
       currentAnimation.pos[1],
       currentAnimation.size[0],
       currentAnimation.size[1],
-      x - width/2 , y - height/2,
+      - width/2, -height/2,
       width,
       height
     );
+
     if(angle){
-    	ctx.restore();
+      ctx.translate(-width/2, -height/2) ; 
     }
+    
+    ctx.restore();
 	}
 	
 }
