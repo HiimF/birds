@@ -439,6 +439,7 @@ module.exports = {
 var birdsGenerator = require('./models/birdsGenerator');
 var particleGenerator = require('./models/particles');
 var assetsLoader = require('./assetsLoader');
+var settings = require('./settings');
 var player = require('./player');
 var particles = particleGenerator.particles;
 var song, then, now, canvas,ctx, canvas2, ctx2, shown,  particlesGenerationStep, particlesDying, color, birds;
@@ -587,14 +588,9 @@ $(document).ready(function(){
   }); 
   // begin downloading 
   loader.start(); 
-
-  window.debugging = 0;
-  $(window).on('click', function(){
-    window.debugging = window.debugging < 3 ? window.debugging+1 : 0;
-  });
  
 });
-},{"./assetsLoader":2,"./models/birdsGenerator":6,"./models/particles":10,"./player":14}],4:[function(require,module,exports){
+},{"./assetsLoader":2,"./models/birdsGenerator":6,"./models/particles":10,"./player":14,"./settings":15}],4:[function(require,module,exports){
 'use strict';
 
 var pressedKeys = {};
@@ -666,45 +662,58 @@ function birdEntity(opts){
   this.angle = opts.angle || 0;
   this.destinyAngle = this.angle;
   this.size = opts.size || 10;
-  this.repulsionRadius = 25;
-  this.aligmentRadius = 50;
-  this.atractionRadius = 200;
-  this.sightRadius = 300;
+ 
   this.sprite = new sprite(window.backgroundImg);
   this.sprite.addAnimation('flap', [0,1,2,1,0,1,2,3,4,5], [10,10], 5);
   this.sprite.playAnimation('flap');
 }
-
 birdEntity.prototype = new entity({x: 0, y : 0});
+
+birdEntity.prototype.getRepulsionRadius = function(){
+  return window.SETTINGS.birdRepulsionRadius.value;
+}
+birdEntity.prototype.getAligmentRadius = function(){
+  return window.SETTINGS.birdAlignmentRadius.value;
+}
+birdEntity.prototype.getAttractionRadius = function(){
+  return window.SETTINGS.birdAttractionRadius.value;
+}
+birdEntity.prototype.getSightRadius = function(){
+  return window.SETTINGS.birdSightRadius.value;
+}
+
 birdEntity.prototype.constructor = birdEntity;
 birdEntity.prototype.parent = entity.prototype;
 
 birdEntity.prototype.render = function(ctx){
 
-  if(window.debugging > 1 ){
+  if( window.SETTINGS.debugging.value == 3 ){
     //Attraction  zone
     ctx.beginPath();
     ctx.fillStyle = 'rgba(42, 250, 33, 0.10)';
-    ctx.arc(this.pos.x, this.pos.y, this.atractionRadius, Math.PI*2, false);
+    ctx.arc(this.pos.x, this.pos.y, this.getAttractionRadius(), Math.PI*2, false);
     ctx.fill();
+  }
 
+  if( window.SETTINGS.debugging.value == 2 || window.SETTINGS.debugging.value == 3 ){
     //Alignment  zone
     ctx.beginPath();
     ctx.fillStyle = 'rgba(33, 42, 250, 0.20)';
-    ctx.arc(this.pos.x, this.pos.y, this.aligmentRadius, Math.PI*2, false);
+    ctx.arc(this.pos.x, this.pos.y, this.getAligmentRadius(), Math.PI*2, false);
     ctx.fill();
-
+  }
+  if(window.SETTINGS.debugging.value == 1 || window.SETTINGS.debugging.value == 2 || window.SETTINGS.debugging.value == 3 ){
     //Repulsion zone
     ctx.beginPath();
     ctx.fillStyle = 'rgba(250, 33, 33, 0.30)';
-    ctx.arc(this.pos.x, this.pos.y, this.repulsionRadius, Math.PI*2, false);
+    ctx.arc(this.pos.x, this.pos.y, this.getRepulsionRadius(), Math.PI*2, false);
     ctx.fill();
   }
 
   //Bird
   ctx.fillStyle = this.leader === true ? 'red' : this.color;
 
-  if(window.debugging == 2){
+  if(window.SETTINGS.debugging.value == 4){
     ctx.beginPath();
     this.opacity = 0.8;
     //a gradient instead of white fill
@@ -754,7 +763,7 @@ birdEntity.prototype.update = function(dt){
 }
 
 module.exports = birdEntity;
-},{"../assetsLoader":2,"../sprite":15,"../utils":16,"./entity":8,"victor":17}],6:[function(require,module,exports){
+},{"../assetsLoader":2,"../sprite":16,"../utils":17,"./entity":8,"victor":18}],6:[function(require,module,exports){
 var entities = require('./entities');
 var utils = require('../utils');
 var QuadTree = require('../QuadTree');
@@ -862,13 +871,12 @@ function updatePackOfBirds(pack, ctx, enemies){
       //Get the 7 nearest birds
       //var neighbors = getNearest(pack[i], i, pack, 7, window.innerWidth * 10);
       //var nearBirds = getNearest(pack[i], i, pack, 7, 30);
-      var neighbors = kNearest(pack[i], pack, 7, pack[i].atractionRadius);
-      var alignmentNeighbors = kNearest(pack[i], pack, 7, pack[i].aligmentRadius);
-      var birdsInRepulsionZone = kNearest(pack[i], pack, 7, pack[i].repulsionRadius);
+      var neighbors = kNearest(pack[i], pack, 7, pack[i].getAttractionRadius());
+      var alignmentNeighbors = kNearest(pack[i], pack, 7, pack[i].getAligmentRadius());
+      var birdsInRepulsionZone = kNearest(pack[i], pack, 7, pack[i].getRepulsionRadius());
+      var enemiesNear = kNearest(pack[i], enemies, 2, pack[i].getSightRadius());
 
-      var enemiesNear = kNearest(pack[i], enemies, 2, pack[i].sightRadius);
-
-      if(window.debugging){
+      if(window.SETTINGS.debugging.value > 0){
         for(var n = 0; n < neighbors.length; n++){
           ctx.strokeStyle = "white";
           ctx.beginPath();
@@ -892,6 +900,15 @@ function updatePackOfBirds(pack, ctx, enemies){
           ctx.beginPath();
           ctx.moveTo(pack[i].pos.x, pack[i].pos.y);
           ctx.lineTo(birdsInRepulsionZone[n].pos.x, birdsInRepulsionZone[n].pos.y);
+          ctx.closePath();
+          ctx.stroke();
+        }
+
+        for(var n = 0; n < enemiesNear.length; n++){
+          ctx.strokeStyle = "red";
+          ctx.beginPath();
+          ctx.moveTo(pack[i].pos.x, pack[i].pos.y);
+          ctx.lineTo(enemiesNear[n].pos.x, enemiesNear[n].pos.y);
           ctx.closePath();
           ctx.stroke();
         }
@@ -945,10 +962,10 @@ function updatePackOfBirds(pack, ctx, enemies){
 
       var turnAmount;
       if(avoiding){
-        turnAmount = (avoiding * 0.75) + (cohesion * 0.01) + (alignment * 0.5) + (separation * 0.25);
+        //console.log('avoiding')
+        turnAmount = avoiding;
       }else{
         turnAmount = (cohesion * 0.01) + (alignment * 0.5) + (separation * 0.25);
-
       }
       pack[i].angle += turnAmount;
   }
@@ -1107,7 +1124,7 @@ function kNearest(a1, lst, k, maxDist) {
 
 module.exports.updatePackOfBirds = updatePackOfBirds;
 module.exports.getPackOfBirds = getPackOfBirds;
-},{"../QuadTree":1,"../utils":16,"./entities":7}],7:[function(require,module,exports){
+},{"../QuadTree":1,"../utils":17,"./entities":7}],7:[function(require,module,exports){
 var entity = require('./entity');
 var textEntity = require('./textEntity');
 var birdEntity = require('./birdEntity');
@@ -1139,7 +1156,7 @@ entity.prototype.render = function(ctx){
 }
 
 module.exports = entity;
-},{"victor":17}],9:[function(require,module,exports){
+},{"victor":18}],9:[function(require,module,exports){
 var Victor = require('victor');
 var entity = require('./entity');
 var utils = require('../utils');
@@ -1187,7 +1204,7 @@ particleEntity.prototype.render = function(ctx){
 }
 
 module.exports = particleEntity;
-},{"../utils":16,"./entity":8,"victor":17}],10:[function(require,module,exports){
+},{"../utils":17,"./entity":8,"victor":18}],10:[function(require,module,exports){
 var entities = require('./entities');
 var utils = require('../utils');
 var particles = getColorParticles(null, 50);
@@ -1242,7 +1259,7 @@ module.exports.newParticle = newParticle;
 module.exports.newFireParticle = newFireParticle;
 module.exports.getColorParticles = getColorParticles;
 module.exports.getFireParticles = getFireParticles;
-},{"../utils":16,"./entities":7}],11:[function(require,module,exports){
+},{"../utils":17,"./entities":7}],11:[function(require,module,exports){
 var entity = require('./entity');
 var sprite = require('../sprite');
 var Victor = require('victor');
@@ -1296,7 +1313,7 @@ Player.prototype.update = function(dt){
 }
 
 module.exports = Player;
-},{"../sprite":15,"./entity":8,"victor":17}],12:[function(require,module,exports){
+},{"../sprite":16,"./entity":8,"victor":18}],12:[function(require,module,exports){
 var Victor = require('victor');
 var entity = require('./entity');
 
@@ -1342,7 +1359,7 @@ textEntity.prototype.getTextHeight = function(){
 }
 
 module.exports = textEntity;
-},{"./entity":8,"victor":17}],13:[function(require,module,exports){
+},{"./entity":8,"victor":18}],13:[function(require,module,exports){
 var entities = require('./entities');
 
 var texts = [];
@@ -1500,6 +1517,38 @@ module.exports = {
   }
 }
 },{"./input":4,"./models/playerModel":11}],15:[function(require,module,exports){
+window.SETTINGS = {
+  enemy:{
+    name: 'Enemy speed',
+    value: 10
+  },
+  birdSightRadius:{
+    name: 'Bird sight radius',
+    value: 100
+  },
+  birdAttractionRadius: {
+    name: 'Bird attraction radius - Green',
+    value: 200
+  },
+  birdAlignmentRadius: {
+    name: 'Bird alignment radius - Blue',
+    value: 50
+  },
+  birdRepulsionRadius: {
+    name: 'Bird repulsion radius - Blue',
+    value: 25
+  },
+  birdSightRadius: {
+    name: 'Bird sight radius - Blue',
+    value: 300
+  },
+  debugging:{
+    name:'Debugging level',
+    value: 0,
+    max: 5
+  }
+}
+},{}],16:[function(require,module,exports){
 function Sprite(img){
 	this.img = img;
 	this.animations = {};
@@ -1575,7 +1624,7 @@ Sprite.prototype.render = function(ctx, x, y, resizeX, resizeY, angle){
 }
 
 module.exports = Sprite;
-},{}],16:[function(require,module,exports){
+},{}],17:[function(require,module,exports){
 function random(a, b){
   return Math.floor(Math.random() * b) + a;
 }
@@ -1607,7 +1656,7 @@ module.exports = {
   randomRGBColor: randomRGBColor,
   flipCoin: flipCoin
 }
-},{}],17:[function(require,module,exports){
+},{}],18:[function(require,module,exports){
 exports = module.exports = Victor;
 
 /**
@@ -2657,4 +2706,4 @@ function degrees2radian (deg) {
 	return deg / degrees;
 }
 
-},{}]},{},[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16]);
+},{}]},{},[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17]);

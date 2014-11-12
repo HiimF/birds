@@ -16,45 +16,58 @@ function birdEntity(opts){
   this.angle = opts.angle || 0;
   this.destinyAngle = this.angle;
   this.size = opts.size || 10;
-  this.repulsionRadius = 25;
-  this.aligmentRadius = 50;
-  this.atractionRadius = 200;
-  this.sightRadius = 300;
+ 
   this.sprite = new sprite(window.backgroundImg);
   this.sprite.addAnimation('flap', [0,1,2,1,0,1,2,3,4,5], [10,10], 5);
   this.sprite.playAnimation('flap');
 }
-
 birdEntity.prototype = new entity({x: 0, y : 0});
+
+birdEntity.prototype.getRepulsionRadius = function(){
+  return window.SETTINGS.birdRepulsionRadius.value;
+}
+birdEntity.prototype.getAligmentRadius = function(){
+  return window.SETTINGS.birdAlignmentRadius.value;
+}
+birdEntity.prototype.getAttractionRadius = function(){
+  return window.SETTINGS.birdAttractionRadius.value;
+}
+birdEntity.prototype.getSightRadius = function(){
+  return window.SETTINGS.birdSightRadius.value;
+}
+
 birdEntity.prototype.constructor = birdEntity;
 birdEntity.prototype.parent = entity.prototype;
 
 birdEntity.prototype.render = function(ctx){
 
-  if(window.debugging > 1 ){
+  if( window.SETTINGS.debugging.value == 3 ){
     //Attraction  zone
     ctx.beginPath();
     ctx.fillStyle = 'rgba(42, 250, 33, 0.10)';
-    ctx.arc(this.pos.x, this.pos.y, this.atractionRadius, Math.PI*2, false);
+    ctx.arc(this.pos.x, this.pos.y, this.getAttractionRadius(), Math.PI*2, false);
     ctx.fill();
+  }
 
+  if( window.SETTINGS.debugging.value == 2 || window.SETTINGS.debugging.value == 3 ){
     //Alignment  zone
     ctx.beginPath();
     ctx.fillStyle = 'rgba(33, 42, 250, 0.20)';
-    ctx.arc(this.pos.x, this.pos.y, this.aligmentRadius, Math.PI*2, false);
+    ctx.arc(this.pos.x, this.pos.y, this.getAligmentRadius(), Math.PI*2, false);
     ctx.fill();
-
+  }
+  if(window.SETTINGS.debugging.value == 1 || window.SETTINGS.debugging.value == 2 || window.SETTINGS.debugging.value == 3 ){
     //Repulsion zone
     ctx.beginPath();
     ctx.fillStyle = 'rgba(250, 33, 33, 0.30)';
-    ctx.arc(this.pos.x, this.pos.y, this.repulsionRadius, Math.PI*2, false);
+    ctx.arc(this.pos.x, this.pos.y, this.getRepulsionRadius(), Math.PI*2, false);
     ctx.fill();
   }
 
   //Bird
   ctx.fillStyle = this.leader === true ? 'red' : this.color;
 
-  if(window.debugging == 2){
+  if(window.SETTINGS.debugging.value == 4){
     ctx.beginPath();
     this.opacity = 0.8;
     //a gradient instead of white fill

@@ -3,6 +3,7 @@
 var birdsGenerator = require('./models/birdsGenerator');
 var particleGenerator = require('./models/particles');
 var assetsLoader = require('./assetsLoader');
+var settings = require('./settings');
 var player = require('./player');
 var particles = particleGenerator.particles;
 var song, then, now, canvas,ctx, canvas2, ctx2, shown,  particlesGenerationStep, particlesDying, color, birds;
@@ -151,10 +152,5 @@ $(document).ready(function(){
   }); 
   // begin downloading 
   loader.start(); 
-
-  window.debugging = 0;
-  $(window).on('click', function(){
-    window.debugging = window.debugging < 3 ? window.debugging+1 : 0;
-  });
  
 });

@@ -105,13 +105,12 @@ function updatePackOfBirds(pack, ctx, enemies){
       //Get the 7 nearest birds
       //var neighbors = getNearest(pack[i], i, pack, 7, window.innerWidth * 10);
       //var nearBirds = getNearest(pack[i], i, pack, 7, 30);
-      var neighbors = kNearest(pack[i], pack, 7, pack[i].atractionRadius);
-      var alignmentNeighbors = kNearest(pack[i], pack, 7, pack[i].aligmentRadius);
-      var birdsInRepulsionZone = kNearest(pack[i], pack, 7, pack[i].repulsionRadius);
+      var neighbors = kNearest(pack[i], pack, 7, pack[i].getAttractionRadius());
+      var alignmentNeighbors = kNearest(pack[i], pack, 7, pack[i].getAligmentRadius());
+      var birdsInRepulsionZone = kNearest(pack[i], pack, 7, pack[i].getRepulsionRadius());
+      var enemiesNear = kNearest(pack[i], enemies, 2, pack[i].getSightRadius());
 
-      var enemiesNear = kNearest(pack[i], enemies, 2, pack[i].sightRadius);
-
-      if(window.debugging){
+      if(window.SETTINGS.debugging.value > 0){
         for(var n = 0; n < neighbors.length; n++){
           ctx.strokeStyle = "white";
           ctx.beginPath();
@@ -135,6 +134,15 @@ function updatePackOfBirds(pack, ctx, enemies){
           ctx.beginPath();
           ctx.moveTo(pack[i].pos.x, pack[i].pos.y);
           ctx.lineTo(birdsInRepulsionZone[n].pos.x, birdsInRepulsionZone[n].pos.y);
+          ctx.closePath();
+          ctx.stroke();
+        }
+
+        for(var n = 0; n < enemiesNear.length; n++){
+          ctx.strokeStyle = "red";
+          ctx.beginPath();
+          ctx.moveTo(pack[i].pos.x, pack[i].pos.y);
+          ctx.lineTo(enemiesNear[n].pos.x, enemiesNear[n].pos.y);
           ctx.closePath();
           ctx.stroke();
         }
@@ -188,10 +196,10 @@ function updatePackOfBirds(pack, ctx, enemies){
 
       var turnAmount;
       if(avoiding){
-        turnAmount = (avoiding * 0.75) + (cohesion * 0.01) + (alignment * 0.5) + (separation * 0.25);
+        //console.log('avoiding')
+        turnAmount = avoiding;
       }else{
         turnAmount = (cohesion * 0.01) + (alignment * 0.5) + (separation * 0.25);
-
       }
       pack[i].angle += turnAmount;
   }

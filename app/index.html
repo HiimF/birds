@@ -22,6 +22,8 @@
 
   </head>
   <body>
+    <div class="settings" id="settingsBox">
+    </div>
     <canvas id="canvas"></canvas>
     <canvas id="canvas2"></canvas>
    
@@ -30,10 +32,15 @@
     <script src="bower_components/jquery/dist/jquery.js"></script>
     <script src="bower_components/PxLoaderNoDependencies/PxLoader.js"></script>
     <script src="bower_components/PxLoaderNoDependencies/PxLoaderImage.js"></script>
+    <script src="bower_components/react/react.js"></script>
+    <script src="bower_components/react/JSXTransformer.js"></script>
     <!-- endbuild -->
+
 
     <!-- build:js({app,.tmp}) scripts/main.js -->
     <script src="bundle.js"></script>
     <!-- endbuild -->
+    
+    <script type="text/jsx" src="templates/settings.jsx"></script>
 </body>
 </html>
